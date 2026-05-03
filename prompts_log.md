@@ -97,3 +97,12 @@
 **Código adoptado o modificado:** Actualicé la función de devolución en `catalogo.py` y el `case '5'` en `main.py` para sincronizar la fila de espera con las devoluciones.
 **Lo que aprendí / Lo que la IA no entendió:** Aprendí el valor crítico del QA Testing. Comprendí que las estructuras de datos (como la cola FIFO) necesitan estar activamente conectadas al flujo del programa principal para funcionar, y que los procesos de negocio a veces requieren simuladores de tiempo para probarse correctamente.
 **Temas de la materia que aplica este prompt:** Pruebas de Software (QA), Colas (FIFO), Control de Flujo, Lógica de Negocio.
+### Prompt #12 (Puntos Extra)
+**Tarea:** Pruebas Unitarias con Pytest
+**LLM usada:** Gemini
+**Fecha/Hora:** 2026-05-02 23:30
+**Prompt enviado:** ¿Cómo puedo usar pytest para crear pruebas unitarias para mis funciones de validación (ISBN y Email)? Al intentar correr `pytest` me salió el error `ModuleNotFoundError: No module named 'utils'`.
+**Respuesta recibida (resumen):** La IA proporcionó el código con 5 funciones de prueba usando la estructura Arrange-Act-Assert y comprobaciones con `assert`. Me explicó que el error de módulo es porque pytest no agregó la raíz al PYTHONPATH, y lo solucioné ejecutando `python -m pytest`.
+**Código adoptado o modificado:** Creé el archivo `tests/test_validadores.py` y corrí el comando sugerido. Todas las pruebas pasaron exitosamente (5 passed).
+**Lo que aprendí / Lo que la IA no entendió:** Aprendí a aislar la lógica de mis funciones y probarlas automáticamente sin tener que correr todo el programa (Unit Testing). Recordé cómo el uso de la bandera `-m` le da a Python el contexto correcto sobre dónde inician mis módulos.
+**Temas de la materia que aplica este prompt:** Pruebas Unitarias (Unit Testing), Automatización de Pruebas, Resolución de Rutas en Python.
