@@ -106,3 +106,33 @@
 **Código adoptado o modificado:** Creé el archivo `tests/test_validadores.py` y corrí el comando sugerido. Todas las pruebas pasaron exitosamente (5 passed).
 **Lo que aprendí / Lo que la IA no entendió:** Aprendí a aislar la lógica de mis funciones y probarlas automáticamente sin tener que correr todo el programa (Unit Testing). Recordé cómo el uso de la bandera `-m` le da a Python el contexto correcto sobre dónde inician mis módulos.
 **Temas de la materia que aplica este prompt:** Pruebas Unitarias (Unit Testing), Automatización de Pruebas, Resolución de Rutas en Python.
+### Prompt #13 (Cambio Crítico a GUI)
+**Tarea:** Conversión de Terminal a Interfaz Gráfica (GUI)
+**LLM usada:** Gemini
+**Fecha/Hora:** 2026-05-02 23:50
+**Prompt enviado:** El profesor indicó en la plataforma (fuera del PDF original) que el programa DEBE ser una GUI llamada MiExamen.py. Ayúdame a adaptar toda la lógica que ya construimos (Catalogo, Libros, Usuarios) a una interfaz de Tkinter con botones y ventanas emergentes.
+**Respuesta recibida (resumen):** La IA explicó que la lógica de negocio (Backend) se mantiene intacta y solo se requiere una nueva capa de presentación (Frontend). Proporcionó el código de `MiExamen.py` usando `tkinter`, `Toplevel` para formularios y `messagebox` para errores.
+**Código adoptado o modificado:** Creé `MiExamen.py` e integré las llamadas a los métodos del `Catalogo`. Verifiqué que las validaciones de ISBN y las reglas de préstamo siguen funcionando dentro de la GUI.
+**Lo que aprendí / Lo que la IA no entendió:** Aprendí la importancia de separar la lógica (Modelos/Servicios) de la interfaz (GUI). Esto permitió que el cambio no requiriera rehacer el proyecto, sino solo "envolver" las funciones existentes en botones. Entendí cómo funciona el ciclo de eventos `mainloop()` de una aplicación gráfica.
+**Temas de la materia que aplica este prompt:** GUI (Tkinter), Manejo de Eventos, Arquitectura Multicapa.
+### Prompt #14 (Refinamiento UX/UI y Ciclo de Vida de la Ventana)
+**Tarea:** Mejoras de Usabilidad (Diseño Responsivo) y Manejo de Eventos en GUI.
+**LLM usada:** Gemini
+**Fecha/Hora:** 2026-05-04 20:30
+**Prompt enviado:** Necesito mejorar `MiExamen.py`. 1) La caja de texto debe ser de solo lectura. 2) Agregar los campos faltantes (Año, Género, Ubicación) al formulario. 3) Hacer la ventana responsiva pero con un tamaño mínimo. 4) Al cerrar la ventana con la "X" del sistema, los datos no se guardan, ¿cómo intercepto ese evento?
+**Respuesta recibida (resumen):** La IA actualizó el diseño usando `expand=True` y `fill=tk.BOTH` para adaptabilidad, y configuró `state=tk.DISABLED` para la consola de texto. Para el cierre de la ventana, explicó el uso de `self.root.protocol("WM_DELETE_WINDOW", self.salir)`.
+**Código adoptado o modificado:** Se reemplazó el archivo `MiExamen.py` completo con el nuevo diseño horizontal, submenús y la intercepción del evento de cierre.
+**Lo que aprendí / Lo que la IA no entendió:** Aprendí que el ciclo de vida de una interfaz gráfica es manejado por el Sistema Operativo, y si no interceptamos explícitamente el cierre (la "X"), nuestro código de limpieza (como guardar el JSON) jamás se ejecuta.
+**Temas de la materia que aplica este prompt:** Interfaces Gráficas Avanzadas, Manejo de Eventos (Event-driven programming), Experiencia de Usuario (UX).
+
+---
+
+### Prompt #15 (Depuración Crítica: Deserialización y kwargs)
+**Tarea:** Corrección de Errores Silenciosos al cargar datos desde JSON.
+**LLM usada:** Gemini
+**Fecha/Hora:** 2026-05-04 20:45
+**Prompt enviado:** Al volver a abrir el programa, los datos guardados en el JSON no se cargan. La terminal arrojó el error: `LibroFisico.__init__() got an unexpected keyword argument 'ejemplares'`.
+**Respuesta recibida (resumen):** La IA identificó dos problemas: 1) Faltaban las importaciones de los modelos (`LibroFisico`, `Alumno`, etc.) dentro de la función `cargar_json`. 2) Se estaban enviando argumentos con nombres equivocados (`ejemplares=` en lugar de `num_ejemplares=`) al constructor.
+**Código adoptado o modificado:** Modifiqué `cargar_json` en `catalogo.py` para incluir los `imports` necesarios localmente y cambié la instanciación de los objetos para que usara parámetros posicionales en lugar de argumentos de palabras clave (kwargs), además de envolver la reconstrucción en bloques `try/except`.
+**Lo que aprendí / Lo que la IA no entendió:** Aprendí lo peligroso que es un "error silencioso" en una GUI: la interfaz seguía funcionando pero el backend fallaba. Comprendí que la firma de un constructor (`__init__`) debe respetarse estrictamente al momento de deserializar objetos desde un diccionario o JSON.
+**Temas de la materia que aplica este prompt:** Persistencia de Datos (Deserialización), Constructores y Argumentos en POO, Manejo de Excepciones (`try/except`).

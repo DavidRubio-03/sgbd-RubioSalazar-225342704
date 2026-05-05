@@ -105,57 +105,123 @@ class Catalogo:
 
     def generar_reporte(self) -> str:
         return f"Catálogo: {len(self.libros)} libros | {len(self.usuarios)} usuarios | {len(self.prestamos)} préstamos registrados."
-
-    # --- Persistencia Básica (JSON) ---
+    
     def guardar_json(self, ruta: str) -> None:
-        """Guarda la estructura básica de los datos en un archivo JSON."""
+        """Guarda la estructura asegurando que no falte ningún dato clave."""
+        import os
+        import json
+        
         datos = {
-            "libros": [l.to_dict() for l in self.libros],
-            "usuarios": [u.to_dict() for u in self.usuarios.values()]
+            "libros": [],
+            "usuarios": [u.to_dict() for u in self.usuarios.values()],
+            "prestamos": [p.to_dict() for p in self.prestamos]
         }
-        # Aseguramos que la carpeta exista antes de guardar
+        
+        # EXTRACCIÓN MANUAL A PRUEBA DE BALAS PARA LOS LIBROS
+        for l in self.libros:
+            l_dict = {
+                "titulo": l.titulo,
+                "autor": l.autor,
+                "isbn": l.isbn,
+                "anio": getattr(l, '_anio', 2024),
+                "genero": getattr(l, '_genero', 'General'),
+                "disponible": l.disponible
+            }
+            if hasattr(l, '_num_ejemplares'):
+                l_dict['ejemplares'] = l._num_ejemplares
+            datos["libros"].append(l_dict)
+            
         os.makedirs(os.path.dirname(ruta), exist_ok=True)
         with open(ruta, 'w', encoding='utf-8') as f:
             json.dump(datos, f, indent=4)
 
     def cargar_json(self, ruta: str) -> None:
-        """Carga los datos y reconstruye los objetos en memoria."""
+        """Carga los datos de forma segura, evadiendo errores del validador."""
+        import os
+        import json
+        from datetime import datetime
+        
+        # --- LA SOLUCIÓN ESTÁ AQUÍ: Importamos los moldes para que pueda reconstruirlos ---
+        from modelos.libro import LibroFisico, LibroDigital
+        from modelos.usuario import Alumno, Profesor, Administrador
+        from servicios.prestamo import Prestamo
+        # ---------------------------------------------------------------------------------
+        
         if not os.path.exists(ruta):
             raise FileNotFoundError(f"El archivo {ruta} no existe aún.")
             
         with open(ruta, 'r', encoding='utf-8') as f:
             datos = json.load(f)
-            
-            # Limpiamos las listas para no duplicar datos si cargamos dos veces
             self.libros = []
             self.usuarios = {}
+            self.prestamos = [] 
             
-            # 1. Reconstruir Libros
+            # 1. Reconstruir Libros con datos seguros
             for lib_data in datos.get("libros", []):
-                # Para simplificar el proyecto, los recargamos como Libros genéricos
-                nuevo_libro = Libro(
-                    titulo=lib_data.get('titulo', 'Desconocido'),
-                    autor=lib_data.get('autor', 'Desconocido'),
-                    isbn=lib_data.get('isbn', '0000000000000'),
-                    anio=lib_data.get('anio', 2000),
-                    genero=lib_data.get('genero', 'Desconocido')
-                )
-                nuevo_libro._disponible = lib_data.get('disponible', True)
-                self.libros.append(nuevo_libro)
+                try: # Si un libro está corrupto, que no rompa los demás
+                    isbn_seguro = lib_data.get('isbn')
+                    if not isbn_seguro or len(isbn_seguro) < 13:
+                        continue 
+                        
+                    if 'ejemplares' in lib_data: 
+                        # Pasamos los datos por posición estricta: Titulo, Autor, ISBN, Año, Genero, Ubicacion, Num_ejemplares
+                        nuevo_libro = LibroFisico(
+                            lib_data.get('titulo', 'Sin Titulo'), 
+                            lib_data.get('autor', 'Anonimo'),
+                            isbn_seguro, 
+                            int(lib_data.get('anio', 2024)),
+                            lib_data.get('genero', 'General'), 
+                            "General",
+                            int(lib_data.get('ejemplares', 1))
+                        )
+                    else: 
+                        # Lo mismo para el digital
+                        nuevo_libro = LibroDigital(
+                            lib_data.get('titulo', 'Sin Titulo'), 
+                            lib_data.get('autor', 'Anonimo'),
+                            isbn_seguro, 
+                            int(lib_data.get('anio', 2024)),
+                            lib_data.get('genero', 'General'), 
+                            "PDF", 1.0, "http://link.com"
+                        )
+                    nuevo_libro._disponible = lib_data.get('disponible', True)
+                    self.libros.append(nuevo_libro)
+                except Exception as e:
+                    print(f"Omitiendo libro por error en datos: {e}")
                 
             # 2. Reconstruir Usuarios
             for usu_data in datos.get("usuarios", []):
-                # Usamos el 'rol' que guardamos en el diccionario para saber qué objeto crear
-                if usu_data.get("rol") == "Profesor":
-                    usuario = Profesor(usu_data["nombre"], usu_data["email"], "General")
-                elif usu_data.get("rol") == "Admin":
-                    usuario = Administrador(usu_data["nombre"], usu_data["email"], 1)
-                else:
-                    usuario = Alumno(usu_data["nombre"], usu_data["email"], "General", 1)
+                try:
+                    if usu_data.get("rol") == "Profesor":
+                        usuario = Profesor(usu_data.get("nombre",""), usu_data.get("email",""), "General")
+                    elif usu_data.get("rol") == "Admin":
+                        usuario = Administrador(usu_data.get("nombre",""), usu_data.get("email",""), 1)
+                    else:
+                        usuario = Alumno(usu_data.get("nombre",""), usu_data.get("email",""), "General", 1)
+                    self.usuarios[usuario.email] = usuario
+                except Exception as e:
+                    print(f"Omitiendo usuario por error en datos: {e}")
                 
-                self.usuarios[usuario.email] = usuario
-                
-            print(f"✅ ¡Datos cargados y reconstruidos desde {ruta}!")
+            # 3. Reconstruir Préstamos
+            for p_data in datos.get("prestamos", []):
+                try:
+                    usu = self.usuarios.get(p_data.get("usuario_email"))
+                    lib = next((l for l in self.libros if l.isbn == p_data.get("libro_isbn")), None)
+                    
+                    if usu and lib:
+                        prestamo = Prestamo.__new__(Prestamo) 
+                        prestamo._id = p_data.get("id", "0")
+                        prestamo._usuario = usu
+                        prestamo._libro = lib
+                        prestamo._fecha_prestamo = datetime.fromisoformat(p_data["fecha_prestamo"])
+                        prestamo._fecha_devolucion = datetime.fromisoformat(p_data["fecha_devolucion"]) if p_data.get("fecha_devolucion") else None
+                        prestamo._multa = float(p_data.get("multa", 0.0))
+                        prestamo._activo = p_data.get("activo", True)
+                        self.prestamos.append(prestamo)
+                except Exception as e:
+                    print(f"Omitiendo préstamo por error en datos: {e}")
+                    
+            print(f"✅ ¡Datos cargados exitosamente desde {ruta}!")
 
 # Pruebas rápidas
 if __name__ == "__main__":
